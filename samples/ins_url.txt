@@ -1,0 +1,10 @@
+
+参数示例：
+query_hash: f2405b236d85e8296cf30347c9f08c2a
+variables: {"id":"641036912","first":12,"after":"QVFBam83ZGFNQTliSGthY3ludDRJWnV5RGR6YVdROHVFRlV3VzQyXzFJcDZLTkZJaHVOdFp3QVZteG0yT2todlJ1dVNGZ3duT09uT3FEaTFkaS1aZFM5Zw=="}
+
+首页URL:
+https://www.instagram.com/graphql/query/?query_hash=f2405b236d85e8296cf30347c9f08c2a&variables=%7B%22id%22%3A%22641036912%22%2C%22first%22%3A12%7D
+
+后续URL，多了after参数：
+https://www.instagram.com/graphql/query/?query_hash=f2405b236d85e8296cf30347c9f08c2a&variables=%7B%22id%22%3A%22641036912%22%2C%22first%22%3A12%2C%22after%22%3A%22QVFBam83ZGFNQTliSGthY3ludDRJWnV5RGR6YVdROHVFRlV3VzQyXzFJcDZLTkZJaHVOdFp3QVZteG0yT2todlJ1dVNGZ3duT09uT3FEaTFkaS1aZFM5Zw%3D%3D%22%7D
