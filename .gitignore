@@ -1,6 +1,5 @@
 node_modules
-images
+images/*
 !images/.gitkeep
-images*
 .DS_Store
 .env
