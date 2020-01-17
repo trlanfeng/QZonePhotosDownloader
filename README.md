@@ -1,4 +1,4 @@
-# 花瓣爬虫
+# QQ空间相册爬虫
 
 基于 Node.js
 
@@ -10,8 +10,6 @@ clone 到本地后，运行`npm i`安装依赖
 
 命令行运行
 
-node index.js `要爬取的url`
+网页登陆QQ空间后拿到 `G_TK`、`COOKIE`，并创建`.env`并写入，参考`.env.example`
 
-## 运行方式二
-
-使用`C#`编写的`RunNode.exe`启动器运行
+node index.js
