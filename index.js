@@ -104,12 +104,12 @@ async function NextPhoto() {
     if (currentPhoto.is_video) {
       const video_url = await getFloatViewList(currentAlbum.id, currentPhoto.picKey);
       const { headers, data } = await getPhotoBinary(video_url);
-      const ext = headers['content-type'].splice('/')[1] || 'mp4';
+      const ext = headers['content-type'].split('/')[1] || 'mp4';
       await savePhotoToFile(data, currentAlbum.name, currentPhoto.name, ext);
       console.log(`视频保存成功 ${++count}`);
     } else {
       const { headers, data } = await getPhotoBinary(currentPhoto.url);
-      const ext = headers['content-type'].splice('/')[1] || 'jpg';
+      const ext = headers['content-type'].split('/')[1] || 'jpg';
       await savePhotoToFile(data, currentAlbum.name, currentPhoto.name, ext);
       console.log(`照片保存成功 ${++count} 张`);
     }
@@ -155,7 +155,7 @@ async function NextPhotoQueue() {
   pageStart += pageNum;
   photoQueue = photos.map((item) => {
     const photo = {};
-    photo.name = `${item.name.replace(/["'.]/gi, '')}.${item.uploadtime}.${+new Date()}`;
+    photo.name = `${item.name}_${item.uploadtime}_${+new Date()}`.replace(/["'\-\:\.\s]/gi, '_');
     if (item.raw_upload) {
       photo.url = item.raw;
     } else {
