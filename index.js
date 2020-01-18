@@ -19,20 +19,25 @@ const getPhotosUrl = 'https://h5.qzone.qq.com/proxy/domain/photo.qzone.qq.com/fc
 const getFloatViewUrl = 'https://h5.qzone.qq.com/proxy/domain/photo.qzone.qq.com/fcgi-bin/cgi_floatview_photo_list_v2';
 
 async function getAlbums() {
-  const res = await axios.get(getAlbumUrl, {
-    params: {
-      g_tk: process.env.G_TK,
-      hostUin: process.env.QQ,
-      uin: process.env.QQ,
-      inCharset: 'utf-8',
-      outCharset: 'utf-8',
-      format: 'json',
-    },
-    headers: {
-      cookie: process.env.COOKIE,
-    },
-  });
-  return res.data.data.albumListModeSort;
+  try {
+    const res = await axios.get(getAlbumUrl, {
+      params: {
+        g_tk: process.env.G_TK,
+        hostUin: process.env.QQ,
+        uin: process.env.QQ,
+        inCharset: 'utf-8',
+        outCharset: 'utf-8',
+        format: 'json',
+      },
+      headers: {
+        cookie: process.env.COOKIE,
+      },
+    });
+    return res.data.data.albumListModeSort || [];
+  } catch (e) {
+    console.log('TR: getAlbums -> e', e);
+    return [];
+  }
 }
 
 async function getPhotos(topicId, pageStart) {
@@ -106,7 +111,7 @@ async function NextPhoto() {
       const { headers, data } = await getPhotoBinary(video_url);
       const ext = headers['content-type'].split('/')[1] || 'mp4';
       await savePhotoToFile(data, currentAlbum.name, currentPhoto.name, ext);
-      console.log(`视频保存成功 ${++count}`);
+      console.log(`视频保存成功 ${++count} 个`);
     } else {
       const { headers, data } = await getPhotoBinary(currentPhoto.url);
       const ext = headers['content-type'].split('/')[1] || 'jpg';
@@ -116,6 +121,7 @@ async function NextPhoto() {
   } catch (e) {
     console.log(`照片保存失败：${currentPhoto.name}`);
     console.log(e);
+    showDebug();
   }
   event.emit('NextPhoto');
 }
@@ -139,33 +145,40 @@ async function NextAlbum() {
     } else {
       console.log(`目录创建失败：${currentAlbum.name}`);
       console.log(e);
+      showDebug();
     }
   }
 }
 
 async function NextPhotoQueue() {
-  if (isPhotoQueueFinished) {
-    console.log('开始下一个相册');
-    event.emit('NextAlbum');
-    return;
-  } else {
-    isPhotoQueueFinished = pageStart + pageNum >= currentAlbum.total ? true : false;
-  }
-  const photos = await getPhotos(currentAlbum.id, pageStart);
-  pageStart += pageNum;
-  photoQueue = photos.map((item) => {
-    const photo = {};
-    photo.name = `${item.name}_${item.uploadtime}_${+new Date()}`.replace(/["'\-\:\.\s]/gi, '_');
-    if (item.raw_upload) {
-      photo.url = item.raw;
+  try {
+    if (isPhotoQueueFinished) {
+      console.log('开始下一个相册');
+      event.emit('NextAlbum');
+      return;
     } else {
-      photo.url = item.url;
+      isPhotoQueueFinished = pageStart + pageNum >= currentAlbum.total ? true : false;
     }
-    photo.is_video = item.is_video;
-    photo.picKey = item.lloc || item.sloc;
-    return photo;
-  });
-  event.emit('NextPhoto');
+    const photos = await getPhotos(currentAlbum.id, pageStart);
+    pageStart += pageNum;
+    photoQueue = photos.map((item) => {
+      const photo = {};
+      photo.name = `${item.name}_${item.uploadtime}`.replace(/["'\\\/\-\:\.\s]/gi, '_');
+      if (item.raw_upload) {
+        photo.url = item.raw;
+      } else {
+        photo.url = item.url;
+      }
+      photo.is_video = item.is_video;
+      photo.picKey = item.lloc || item.sloc;
+      return photo;
+    });
+    event.emit('NextPhoto');
+  } catch (e) {
+    console.log('TR: NextPhotoQueue -> pageStart', pageStart);
+    console.log(e);
+    showDebug();
+  }
 }
 
 function initEvent() {
@@ -176,6 +189,11 @@ function initEvent() {
   event.on('NextPhotoQueue', NextPhotoQueue);
   // 保存完该相册后，获取下一个相册
   event.on('NextAlbum', NextAlbum);
+}
+
+function showDebug() {
+  console.log('TR: NextPhoto -> currentAlbum', currentAlbum);
+  console.log('TR: NextPhoto -> currentPhoto', currentPhoto);
 }
 
 async function main() {
