@@ -33,7 +33,15 @@ async function getAlbums() {
         cookie: process.env.COOKIE,
       },
     });
-    return res.data.data.albumListModeSort || [];
+    let albumList = [];
+    if (res.data.data.albumListModeSort) {
+      albumList = res.dat.data.albumListModeSort;
+    } else if (res.data.data.albumListModeClass) {
+      res.data.data.albumListModeClass.forEach(item => {
+        albumList = albumList.concat(item.albumList);
+      });
+    }
+    return albumList;
   } catch (e) {
     console.log('TR: getAlbums -> e', e);
     return [];
@@ -57,6 +65,10 @@ async function getPhotos(topicId, pageStart) {
       cookie: process.env.COOKIE,
     },
   });
+  if (typeof res.data !== 'object') {
+    console.log('返回内容有误，请检查是否某些照片名称乱码');
+    return [];
+  }
   return res.data.data.photoList;
 }
 
@@ -89,6 +101,15 @@ function makeAlbumDir(albumName) {
   return fs.promises.mkdir(`images/${albumName}`);
 }
 
+function getFilesCount(albumName) {
+  try {
+    const files = fs.readdirSync(`images/${albumName}`);
+    return files.length;
+  } catch (e) {
+    return 0;
+  }
+}
+
 function getPhotoBinary(url) {
   return axios.get(url, {
     responseType: "arraybuffer",
@@ -119,8 +140,15 @@ async function NextPhoto() {
       console.log(`照片保存成功 ${++count} 张`);
     }
   } catch (e) {
-    console.log(`照片保存失败：${currentPhoto.name}`);
     console.log(e);
+    console.log('-----');
+    console.log('照片保存失败');
+    console.log(`相册名称: ${currentAlbum.name}`);
+    console.log(`相册ID: ${currentAlbum.id}`);
+    console.log(`照片名称: ${currentPhoto.name}`);
+    console.log(`照片key: ${currentPhoto.lloc}`);
+    console.log(`照片预览: ${currentPhoto.pre}`);
+    console.log('=====');
     showDebug();
   }
   event.emit('NextPhoto');
@@ -134,8 +162,25 @@ async function NextAlbum() {
       console.log('全部下载完毕！');
       return;
     }
+
+    // do {
     currentAlbum = albumQueue.shift();
     currentAlbum.name = currentAlbum.name.replace(/["']/gi, '');
+    // } while (currentAlbum.name !== '2018.11.10')
+
+
+    if (currentAlbum.total === 0) {
+      console.log(`${currentAlbum.name} 该相册无照片`);
+      event.emit('NextAlbum');
+      return;
+    }
+
+    if (currentAlbum.total === getFilesCount(currentAlbum.name)) {
+      console.log(`${currentAlbum.name} 该相册照片已全部下载`);
+      event.emit('NextAlbum');
+      return;
+    }
+
     console.log('开始下载相册：', currentAlbum.name);
     const result = await makeAlbumDir(currentAlbum.name);
     event.emit('NextPhotoQueue');
@@ -163,7 +208,7 @@ async function NextPhotoQueue() {
     pageStart += pageNum;
     photoQueue = photos.map((item) => {
       const photo = {};
-      photo.name = `${item.name}_${item.uploadtime}`.replace(/["'\\\/\-\:\.\s]/gi, '_');
+      photo.name = `${item.name}_${item.lloc}`.replace(/["'\!\*\\\/\-\:\.\s]/gi, '_');
       if (item.raw_upload) {
         photo.url = item.raw;
       } else {
@@ -175,7 +220,6 @@ async function NextPhotoQueue() {
     });
     event.emit('NextPhoto');
   } catch (e) {
-    console.log('TR: NextPhotoQueue -> pageStart', pageStart);
     console.log(e);
     showDebug();
   }
@@ -192,8 +236,8 @@ function initEvent() {
 }
 
 function showDebug() {
-  console.log('TR: NextPhoto -> currentAlbum', currentAlbum);
-  console.log('TR: NextPhoto -> currentPhoto', currentPhoto);
+  // console.log('TR: NextPhoto -> currentAlbum', currentAlbum);
+  // console.log('TR: NextPhoto -> currentPhoto', currentPhoto);
 }
 
 async function main() {
