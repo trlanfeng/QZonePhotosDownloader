@@ -165,7 +165,7 @@ async function NextAlbum() {
 
     // do {
     currentAlbum = albumQueue.shift();
-    currentAlbum.name = currentAlbum.name.replace(/["']/gi, '');
+    currentAlbum.name = currentAlbum.name.replace(/["'\\\/]/gi, '');
     // } while (currentAlbum.name !== '2018.11.10')
 
 
